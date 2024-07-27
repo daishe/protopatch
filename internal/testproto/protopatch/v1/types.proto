@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package protopatch.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+enum Enum {
+  ENUM_VALUE_UNSPECIFIED = 0;
+  ENUM_VALUE_OTHER = 1;
+}
+
+message TestMessage {
+  bool bool = 1;
+  int32 int32 = 2;
+  sint32 sint32 = 3;
+  sfixed32 sfixed32 = 4;
+  uint32 uint32 = 5;
+  fixed32 fixed32 = 6;
+  int64 int64 = 7;
+  sint64 sint64 = 8;
+  sfixed64 sfixed64 = 9;
+  uint64 uint64 = 10;
+  fixed64 fixed64 = 11;
+  float float = 12;
+  double double = 13;
+  string string = 14;
+  bytes bytes = 15;
+  Enum enum = 16;
+  TestMessage message = 17;
+  TestOneof oneof = 18;
+  TestList list = 19;
+  TestMap map = 20;
+  TestWellKnown well_known = 21;
+}
+
+message TestOneof {
+  oneof types {
+    bool bool = 1;
+    int32 int32 = 2;
+    sint32 sint32 = 3;
+    sfixed32 sfixed32 = 4;
+    uint32 uint32 = 5;
+    fixed32 fixed32 = 6;
+    int64 int64 = 7;
+    sint64 sint64 = 8;
+    sfixed64 sfixed64 = 9;
+    uint64 uint64 = 10;
+    fixed64 fixed64 = 11;
+    float float = 12;
+    double double = 13;
+    string string = 14;
+    bytes bytes = 15;
+    Enum enum = 16;
+    TestMessage message = 17;
+  }
+  oneof single_message {
+    TestMessage single_message_0 = 101;
+  }
+}
+
+message TestList {
+  repeated bool bool = 1;
+  repeated int32 int32 = 2;
+  repeated sint32 sint32 = 3;
+  repeated sfixed32 sfixed32 = 4;
+  repeated uint32 uint32 = 5;
+  repeated fixed32 fixed32 = 6;
+  repeated int64 int64 = 7;
+  repeated sint64 sint64 = 8;
+  repeated sfixed64 sfixed64 = 9;
+  repeated uint64 uint64 = 10;
+  repeated fixed64 fixed64 = 11;
+  repeated float float = 12;
+  repeated double double = 13;
+  repeated string string = 14;
+  repeated bytes bytes = 15;
+  repeated Enum enum = 16;
+  repeated TestMessage message = 17;
+}
+
+message TestMap {
+  map<bool, string> bool_to_string = 1;
+  map<int32, string> int32_to_string = 2;
+  map<sint32, string> sint32_to_string = 3;
+  map<sfixed32, string> sfixed32_to_string = 4;
+  map<uint32, string> uint32_to_string = 5;
+  map<fixed32, string> fixed32_to_string = 6;
+  map<int64, string> int64_to_string = 7;
+  map<sint64, string> sint64_to_string = 8;
+  map<sfixed64, string> sfixed64_to_string = 9;
+  map<uint64, string> uint64_to_string = 10;
+  map<fixed64, string> fixed64_to_string = 11;
+  map<string, string> string_to_string = 12;
+
+  map<string, bool> string_to_bool = 101;
+  map<string, int32> string_to_int32 = 102;
+  map<string, sint32> string_to_sint32 = 103;
+  map<string, sfixed32> string_to_sfixed32 = 104;
+  map<string, uint32> string_to_uint32 = 105;
+  map<string, fixed32> string_to_fixed32 = 106;
+  map<string, int64> string_to_int64 = 107;
+  map<string, sint64> string_to_sint64 = 108;
+  map<string, sfixed64> string_to_sfixed64 = 109;
+  map<string, uint64> string_to_uint64 = 110;
+  map<string, fixed64> string_to_fixed64 = 111;
+  map<string, float> string_to_float = 112;
+  map<string, double> string_to_double = 113;
+  map<string, bytes> string_to_bytes = 114;
+  map<string, Enum> string_to_enum = 115;
+  map<string, TestMessage> string_to_message = 116;
+}
+
+message TestWellKnown {
+  google.protobuf.Duration duration = 1;
+  google.protobuf.Struct struct = 2;
+  google.protobuf.ListValue list = 3;
+  google.protobuf.Value value = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}

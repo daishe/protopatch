@@ -1,0 +1,61 @@
+package protopatch
+
+import (
+	"reflect"
+
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+)
+
+func ConvertToMessageThroughWireEncoding(target protoreflect.Message, src protoreflect.Message) (protoreflect.Message, error) {
+	if target.Descriptor() == src.Descriptor() {
+		return src, nil
+	}
+	b, err := proto.Marshal(src.Interface())
+	if err != nil {
+		return nil, err
+	}
+	dst := target.New()
+	err = proto.Unmarshal(b, dst.Interface())
+	if err != nil {
+		return nil, err
+	}
+	return dst, nil
+}
+
+func ConvertToMessageThroughJSON(target protoreflect.Message, src protoreflect.Message) (protoreflect.Message, error) {
+	if target.Descriptor() == src.Descriptor() {
+		return src, nil
+	}
+	b, err := protojson.Marshal(src.Interface())
+	if err != nil {
+		return nil, err
+	}
+	dst := target.New()
+	err = protojson.Unmarshal(b, dst.Interface())
+	if err != nil {
+		return nil, err
+	}
+	return dst, nil
+}
+
+func ConvertToMessageFieldThroughJSON(parent protoreflect.Message, field protoreflect.FieldDescriptor, src protoreflect.Message) (protoreflect.Value, error) {
+	if field.Message() == src.Descriptor() {
+		return protoreflect.ValueOfMessage(src), nil
+	}
+	if reflect.TypeOf(parent.NewField(field).Interface()) == reflect.TypeOf(src.Interface()) {
+		return protoreflect.ValueOfMessage(src), nil
+	}
+	b, err := protojson.Marshal(src.Interface())
+	if err != nil {
+		return protoreflect.Value{}, err
+	}
+	b = append(append([]byte(`{"`+field.JSONName()+`\":`), b...), '}')
+	dst := parent.New()
+	err = protojson.Unmarshal(b, dst.Interface())
+	if err != nil {
+		return protoreflect.Value{}, err
+	}
+	return dst.Mutable(field), nil
+}

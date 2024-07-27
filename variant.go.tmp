@@ -1,0 +1,253 @@
+package protopatch
+
+import "google.golang.org/protobuf/reflect/protoreflect"
+
+type Kind uint32
+
+const (
+	KindInvalid Kind = iota
+	KindBool
+	KindInt32
+	KindSint32
+	KindSfixed32
+	KindInt64
+	KindSint64
+	KindSfixed64
+	KindUint32
+	KindFixed32
+	KindUint64
+	KindFixed64
+	KindFloat
+	KindDouble
+	KindString
+	KindBytes
+	KindEnum
+	KindMessage
+)
+
+func KindFromProto(k protoreflect.Kind) Kind {
+	switch k {
+	case protoreflect.BoolKind:
+		return KindBool
+	case protoreflect.EnumKind:
+		return KindEnum
+	case protoreflect.Int32Kind:
+		return KindInt32
+	case protoreflect.Sint32Kind:
+		return KindSint32
+	case protoreflect.Uint32Kind:
+		return KindUint32
+	case protoreflect.Int64Kind:
+		return KindInt64
+	case protoreflect.Sint64Kind:
+		return KindSint64
+	case protoreflect.Uint64Kind:
+		return KindUint64
+	case protoreflect.Sfixed32Kind:
+		return KindSfixed32
+	case protoreflect.Fixed32Kind:
+		return KindFixed32
+	case protoreflect.FloatKind:
+		return KindFloat
+	case protoreflect.Sfixed64Kind:
+		return KindSfixed64
+	case protoreflect.Fixed64Kind:
+		return KindFixed64
+	case protoreflect.DoubleKind:
+		return KindDouble
+	case protoreflect.StringKind:
+		return KindString
+	case protoreflect.BytesKind:
+		return KindBytes
+	case protoreflect.MessageKind:
+		return KindMessage
+	}
+	return KindInvalid
+}
+
+func (k Kind) newScalarValue() protoreflect.Value {
+	switch k {
+	case KindBool:
+		return protoreflect.ValueOfBool(false)
+	case KindEnum:
+		return protoreflect.ValueOfEnum(protoreflect.EnumNumber(0))
+	case KindInt32:
+		return protoreflect.ValueOfInt32(0)
+	case KindSint32:
+		return protoreflect.ValueOfInt32(0)
+	case KindUint32:
+		return protoreflect.ValueOfUint32(0)
+	case KindInt64:
+		return protoreflect.ValueOfInt64(0)
+	case KindSint64:
+		return protoreflect.ValueOfInt64(0)
+	case KindUint64:
+		return protoreflect.ValueOfUint64(0)
+	case KindSfixed32:
+		return protoreflect.ValueOfInt32(0)
+	case KindFixed32:
+		return protoreflect.ValueOfUint32(0)
+	case KindFloat:
+		return protoreflect.ValueOfFloat32(0)
+	case KindSfixed64:
+		return protoreflect.ValueOfInt64(0)
+	case KindFixed64:
+		return protoreflect.ValueOfUint64(0)
+	case KindDouble:
+		return protoreflect.ValueOfFloat64(0)
+	case KindString:
+		return protoreflect.ValueOfString("")
+	case KindBytes:
+		return protoreflect.ValueOfBytes(nil)
+	}
+	return protoreflect.Value{}
+}
+
+type Variant struct {
+	value    Kind
+	key      Kind
+	keyValue Kind
+	isList   bool
+	isMap    bool
+
+	message protoreflect.MessageDescriptor
+	enum    protoreflect.EnumDescriptor
+
+	fnValue        func() protoreflect.Value
+	fnZeroValue    func() protoreflect.Value
+	fnKey          func() protoreflect.Value
+	fnZeroKey      func() protoreflect.Value
+	fnKeyValue     func() protoreflect.Value
+	fnZeroKeyValue func() protoreflect.Value
+}
+
+func VariantOfMessage(m protoreflect.Message) Variant {
+	typ := m.Type()
+	return Variant{
+		value:       KindMessage,
+		message:     m.Descriptor(),
+		fnValue:     func() protoreflect.Value { return protoreflect.ValueOfMessage(typ.New()) },
+		fnZeroValue: func() protoreflect.Value { return protoreflect.ValueOfMessage(typ.Zero()) },
+	}
+}
+
+func VariantOfField(m protoreflect.Message, f protoreflect.FieldDescriptor) Variant {
+	v := Variant{
+		value:       KindFromProto(f.Kind()),
+		message:     f.Message(),
+		enum:        f.Enum(),
+		isList:      f.IsList(),
+		isMap:       f.IsMap(),
+		fnValue:     func() protoreflect.Value { return m.NewField(f) },
+		fnZeroValue: func() protoreflect.Value { return m.NewField(f) },
+	}
+	if v.isList {
+		v.key = KindInt64
+		v.keyValue = KindFromProto(f.Kind())
+		v.fnKey = func() protoreflect.Value { return v.key.newScalarValue() }
+		v.fnKeyValue = func() protoreflect.Value { return m.NewField(f).List().NewElement() }
+	}
+	if v.isMap {
+		v.key = KindFromProto(f.MapKey().Kind())
+		v.keyValue = KindFromProto(f.MapValue().Kind())
+		v.fnKey = func() protoreflect.Value { return v.key.newScalarValue() }
+		v.fnKeyValue = func() protoreflect.Value { return m.NewField(f).Map().NewValue() }
+	}
+	return v
+}
+
+func VariantOfFieldIndexOrKey(m protoreflect.Message, f protoreflect.FieldDescriptor) Variant {
+	if f.IsList() {
+		return Variant{
+			value:       KindFromProto(f.Kind()),
+			message:     f.Message(),
+			enum:        f.Enum(),
+			fnValue:     func() protoreflect.Value { return m.NewField(f).List().NewElement() },
+			fnZeroValue: func() protoreflect.Value { return m.NewField(f).List().NewElement() },
+		}
+	}
+	if f.IsMap() {
+		return Variant{
+			value:       KindFromProto(f.Kind()),
+			message:     f.Message(),
+			enum:        f.Enum(),
+			fnValue:     func() protoreflect.Value { return m.NewField(f).Map().NewValue() },
+			fnZeroValue: func() protoreflect.Value { return m.NewField(f).Map().NewValue() },
+		}
+	}
+	return Variant{}
+}
+
+func (v Variant) IsValid() bool {
+	return v.ValueKind() != KindInvalid
+}
+
+func (v Variant) ValueKind() Kind {
+	return v.value
+}
+
+func (v Variant) KeyKind() Kind {
+	return v.key
+}
+
+func (v Variant) KeyValueKind() Kind {
+	return v.keyValue
+}
+
+func (v Variant) IsList() bool {
+	return v.isList
+}
+
+func (v Variant) IsMap() bool {
+	return v.isMap
+}
+
+func (v Variant) Message() protoreflect.MessageDescriptor {
+	return v.message
+}
+
+func (v Variant) Enum() protoreflect.EnumDescriptor {
+	return v.enum
+}
+
+func (v Variant) NewValue() protoreflect.Value {
+	if v.fnValue != nil {
+		return v.fnValue()
+	}
+	return protoreflect.Value{}
+}
+
+func (v Variant) ZeroValue() protoreflect.Value {
+	if v.fnZeroValue != nil {
+		return v.fnZeroValue()
+	}
+	return protoreflect.Value{}
+}
+
+func (v Variant) NewKey() protoreflect.Value {
+	if v.fnKey != nil {
+		return v.fnKey()
+	}
+	return protoreflect.Value{}
+}
+
+func (v Variant) ZeroKey() protoreflect.Value {
+	if v.fnZeroKey != nil {
+		return v.fnZeroKey()
+	}
+	return protoreflect.Value{}
+}
+
+func (v Variant) NewKeyValue() protoreflect.Value {
+	if v.fnKey != nil {
+		return v.fnKeyValue()
+	}
+	return protoreflect.Value{}
+}
+
+func (v Variant) ZeroKeyValue() protoreflect.Value {
+	if v.fnZeroKey != nil {
+		return v.fnZeroKeyValue()
+	}
+	return protoreflect.Value{}
+}
